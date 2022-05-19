@@ -1,2 +1,2 @@
 # MLM_Final_2022
-Repository for final for Edu 215D
+Repository for final project (Edu 215D)
