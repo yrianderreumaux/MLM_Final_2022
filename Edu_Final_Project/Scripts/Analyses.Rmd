@@ -1,0 +1,27 @@
+---
+title: "Analyses"
+author: "Yrian Derreumaux"
+date: "5/19/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+#knitr::opts_knit$set(root.dir = '/tmp')
+```
+
+# Check Packages 
+
+```{r}
+#Load helper functions
+install.packages("here")
+packrat::snapshot()
+
+```
+
+# Load data
+
+```{r}
+
+```
+
