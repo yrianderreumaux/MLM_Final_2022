@@ -13,11 +13,32 @@ knitr::opts_chunk$set(echo = TRUE)
 # Check Packages 
 
 ```{r}
-#Load helper functions
-install.packages("here")
+#snapshot shows all libraries #https://rstudio.github.io/packrat/walkthrough.html
 packrat::snapshot()
-
 ```
+
+# get data from google drive folder
+```{r}
+#accessing data from google drive
+#authenticate 
+drive_auth()
+#check account accessed
+drive_user()
+
+#uncomment below if we want to download to local repository
+#locate folder with data
+#file_url <- "https://drive.google.com/drive/u/1/folders/1lKMwv_Xf7AGQO5fuSwTlPbzV9Vr6lqLt/SharedDFfullDF.csv"
+#save id
+#to save files to local repository
+# folder <- drive_get(as_id(file_url))
+# csv_files <- drive_ls(folder, type = "csv")
+# walk(csv_files$id, ~ drive_download(as_id(.x)))
+
+#below to read in from google drive but not download
+id <- "1niB2Mvv9i9Ni5DM_tCFgD-OWmn-A4rsV"
+df <- read.csv(paste0("https://docs.google.com/uc?id=", id, "&export=download"))
+```
+
 
 # Load data
 
