@@ -10,6 +10,13 @@ knitr::opts_chunk$set(echo = TRUE)
 #knitr::opts_knit$set(root.dir = '/tmp')
 ```
 
+```{r}
+library(ordinal)
+library(ggeffects)
+library(dplyr)
+```
+
+
 # Check Packages 
 
 ```{r}
@@ -17,13 +24,13 @@ knitr::opts_chunk$set(echo = TRUE)
 packrat::snapshot()
 ```
 
-# get data from google drive folder
+# get data
 ```{r}
 #accessing data from google drive
 #authenticate 
-drive_auth()
+# drive_auth()
 #check account accessed
-drive_user()
+# drive_user()
 
 #uncomment below if we want to download to local repository
 #locate folder with data
@@ -35,10 +42,20 @@ drive_user()
 # walk(csv_files$id, ~ drive_download(as_id(.x)))
 
 #below to read in from google drive but not download
-df <- read.csv("/Volumes/GoogleDrive/.shortcut-targets-by-id/1a3bpVLXtKTU5gNIvNj9MJBoD3mAGzzK2/Preference Falsification/Analysis/output/PFfullDF.csv")
+df <- read.csv("../input/PFfullDF.csv")
 ```
 
-# Null Model
+```{r}
+varReduced <- function(reference, compare){
+  output <- (reference - compare)/reference
+  return(output)
+}
+```
+
+
+# Information and Polling Approval
+
+## Null Model: One-Way ANOVA
 
 ```{r}
 null <-  clmm(as.factor(eval) ~ 1 + (1|subID) + (1|issues), data = df, threshold = "flexible")
@@ -46,12 +63,96 @@ summary(null)
 
 performance::icc(null)
 
+Null.COV <- VarCorr(null)
+Null.InterceptVar.SubID <- Null.COV$subID[1]
+Null.InterceptVar.Issues <- Null.COV$issues[1]
 ```
+
+## Means-As-Outcomes: i.e., L1-Only with Fixed Slopes
 
 ```{r}
-M1 <-  clmm(as.factor(eval) ~ Info * scale(inMinOut) +(1|subID) + (1|issues), data = df, threshold = "flexible")
-summary(M1)
+MAO <-  clmm(as.factor(eval) ~ scale(inMinOut) + (1|subID) + (1|issues), data = df, threshold = "flexible")
+summary(MAO)
 
-performance::icc(null)
+performance::icc(MAO)
 
+MAO.VCOV <- VarCorr(MAO)
+MAO.InterceptVar.SubID <- MAO.VCOV$subID[1]
+MAO.InterceptVar.Issues <- MAO.VCOV$issues[1]
 ```
+
+### # Intercept Variance Reduced for People
+
+```{r}
+varReduced(Null.InterceptVar.SubID, MAO.InterceptVar.SubID)
+```
+
+### # Intercept Variance Reduced for Issues
+
+```{r}
+varReduced(Null.InterceptVar.Issues, MAO.InterceptVar.Issues)
+```
+
+## One-Way ANCOVA: i.e., L1-Only with Random Slopes
+
+```{r}
+ANCOVA <-  clmm(as.factor(eval) ~ scale(inMinOut) + (scale(inMinOut)|subID) + (1|issues), data = df, threshold = "flexible")
+summary(ANCOVA)
+
+performance::icc(ANCOVA)
+
+ANCOVA.VCOV <- VarCorr(ANCOVA)
+ANCOVA.InterceptVar.SubID <- ANCOVA.VCOV$subID[1]
+ANCOVA.InterceptVar.Issues <- ANCOVA.VCOV$issues[1]
+
+
+ANCOVA.SlopeVar.SubID <- ANCOVA.VCOV$subID[4]
+ANCOVA.SlopeVar.Issues <- ANCOVA.VCOV$issues[4]
+```
+
+### # Intercept Variance Reduced for People
+
+```{r}
+varReduced(MAO.InterceptVar.SubID, ANCOVA.InterceptVar.SubID)
+```
+
+### # Intercept Variance Reduced for Issues
+
+```{r}
+varReduced(MAO.InterceptVar.Issues, ANCOVA.InterceptVar.Issues)
+```
+
+## Means-and-slopes-as-outcomes: i.e., L1 with Random Slopes and L2 cross-level
+
+```{r}
+MASAO <-  clmm(as.factor(eval) ~ Info * scale(inMinOut) + (scale(inMinOut)|subID) + (1|issues), data = df, threshold = "flexible")
+summary(MASAO)
+
+performance::icc(MASAO)
+
+MASAO.VCOV <- VarCorr(MASAO)
+MASAO.InterceptVar.SubID <- MASAO.VCOV$subID[1]
+MASAO.InterceptVar.Issues <- MASAO.VCOV$issues[1]
+
+MASAO.SlopeVar.SubID <- MASAO.VCOV$subID[4]
+MASAO.SlopeVar.Issues <- MASAO.VCOV$issues[4]
+```
+
+### # Intercept Variance Reduced for People
+
+```{r}
+varReduced(ANCOVA.InterceptVar.SubID, MASAO.InterceptVar.SubID)
+```
+
+### # Intercept Variance Reduced for Issues
+
+```{r}
+varReduced(ANCOVA.InterceptVar.Issues, MASAO.InterceptVar.SubID)
+```
+
+### # Slope Variance Reduced for People
+
+```{r}
+varReduced(ANCOVA.SlopeVar.SubID, MASAO.SlopeVar.SubID)
+```
+
