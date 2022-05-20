@@ -35,14 +35,23 @@ drive_user()
 # walk(csv_files$id, ~ drive_download(as_id(.x)))
 
 #below to read in from google drive but not download
-id <- "1niB2Mvv9i9Ni5DM_tCFgD-OWmn-A4rsV"
-df <- read.csv(paste0("https://docs.google.com/uc?id=", id, "&export=download"))
+df <- read.csv("/Volumes/GoogleDrive/.shortcut-targets-by-id/1a3bpVLXtKTU5gNIvNj9MJBoD3mAGzzK2/Preference Falsification/Analysis/output/PFfullDF.csv")
 ```
 
-
-# Load data
+# Null Model
 
 ```{r}
+null <-  clmm(as.factor(eval) ~ 1 + (1|subID) + (1|issues), data = df, threshold = "flexible")
+summary(null)
+
+performance::icc(null)
 
 ```
 
+```{r}
+M1 <-  clmm(as.factor(eval) ~ Info * scale(inMinOut) +(1|subID) + (1|issues), data = df, threshold = "flexible")
+summary(M1)
+
+performance::icc(null)
+
+```
