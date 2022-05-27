@@ -14,6 +14,8 @@ knitr::opts_chunk$set(echo = TRUE)
 library(ordinal)
 library(ggeffects)
 library(dplyr)
+library(broom)
+library(sjPlot)
 ```
 
 
@@ -21,7 +23,7 @@ library(dplyr)
 
 ```{r}
 #snapshot shows all libraries #https://rstudio.github.io/packrat/walkthrough.html
-packrat::snapshot()
+#packrat::snapshot()
 ```
 
 # get data
@@ -43,6 +45,7 @@ packrat::snapshot()
 
 #below to read in from google drive but not download
 df <- read.csv("../input/PFfullDF.csv")
+df <- subset(df, Info == "Info")
 ```
 
 ```{r}
@@ -59,6 +62,7 @@ varReduced <- function(reference, compare){
 
 ```{r}
 null <-  clmm(as.factor(eval) ~ 1 + (1|subID) + (1|issues), data = df, threshold = "flexible")
+tidy(null,conf.int=TRUE,exponentiate=TRUE,effects="fixed")
 summary(null)
 
 performance::icc(null)
@@ -72,7 +76,7 @@ Null.InterceptVar.Issues <- Null.COV$issues[1]
 
 ```{r}
 MAO <-  clmm(as.factor(eval) ~ scale(inMinOut) + (1|subID) + (1|issues), data = df, threshold = "flexible")
-summary(MAO)
+tidy(MAO,conf.int=TRUE,exponentiate=TRUE,effects="fixed")
 
 performance::icc(MAO)
 
@@ -97,7 +101,7 @@ varReduced(Null.InterceptVar.Issues, MAO.InterceptVar.Issues)
 
 ```{r}
 ANCOVA <-  clmm(as.factor(eval) ~ scale(inMinOut) + (scale(inMinOut)|subID) + (1|issues), data = df, threshold = "flexible")
-summary(ANCOVA)
+tidy(ANCOVA,conf.int=TRUE,exponentiate=TRUE,effects="fixed")
 
 performance::icc(ANCOVA)
 
@@ -125,8 +129,11 @@ varReduced(MAO.InterceptVar.Issues, ANCOVA.InterceptVar.Issues)
 ## Means-and-slopes-as-outcomes: i.e., L1 with Random Slopes and L2 cross-level
 
 ```{r}
-MASAO <-  clmm(as.factor(eval) ~ Info * scale(inMinOut) + (scale(inMinOut)|subID) + (1|issues), data = df, threshold = "flexible")
-summary(MASAO)
+df$eval <- as.factor(df$eval)
+df$affPolZ <- scale(df$affPol)
+df$inMinOutZ <- scale(df$inMinOut)
+MASAO <-  clmm(eval ~ affPolZ * inMinOutZ + ( inMinOutZ |subID) + (1|issues), data = df, threshold = "flexible")
+tidy(MASAO,conf.int=TRUE,exponentiate=TRUE,effects="fixed")
 
 performance::icc(MASAO)
 
@@ -155,4 +162,27 @@ varReduced(ANCOVA.InterceptVar.Issues, MASAO.InterceptVar.SubID)
 ```{r}
 varReduced(ANCOVA.SlopeVar.SubID, MASAO.SlopeVar.SubID)
 ```
+
+```{r}
+tab_model(null, MAO, ANCOVA, MASAO, show.stat=T, show.r2 = T, show.se = T, show.ci = F, show.p = F, pred.labels = c("1|2","2|3","3|4","4|5","5|6","6|7","Approval","Polarized", "Polarized*Approval"), string.pred = c("Fixed Effects"), string.est = "OR", string.se = "SE", string.stat = "z", digits = 2, emph.p = F, dv.labels = c("Null","MAO","ANCOVA","MASAO"), file="./EDUC215Dtable.doc")
+```
+
+```{r}
+tab_model(null, MAO, ANCOVA, MASAO, show.stat=T, show.r2 = T, show.se = T, show.ci = F, show.p = T, pred.labels = c("1|2","2|3","3|4","4|5","5|6","6|7","Approval","Polarized", "Polarized*Approval"), string.pred = c("Fixed Effects"), string.est = "OR", string.se = "SE", string.stat = "z", digits = 2, emph.p = F, dv.labels = c("Null","MAO","ANCOVA","MASAO") )
+```
+
+```{r}
+anova(null, MAO, ANCOVA, MASAO)
+```
+# Plot
+
+```{r}
+plot <- ggpredict(MASAO, c("inMinOutZ", "affPolZ")) %>% plot(show.title=F) + jtools::theme_apa() 
+plot$labels$x <- "Ingroup - Outgroup Approval"
+plot$labels$y <- "Support"
+plot
+```
+
+
+
 
