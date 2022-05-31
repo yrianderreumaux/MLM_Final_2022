@@ -49,6 +49,17 @@ df <- subset(df, Info == "Info")
 ```
 
 ```{r}
+df$Polit <- ordered(df$Polit)
+df$WSCz <- scale(df$WSC)
+df$SES <- ordered(df$SES)
+df$MLAMz <- scale(df$MLAM)
+df$eval <- as.factor(df$eval)
+df$affPolZ <- scale(df$affPol)
+df$inMinOutZ <- scale(df$inMinOut)
+```
+
+
+```{r}
 varReduced <- function(reference, compare){
   output <- (reference - compare)/reference
   return(output)
@@ -75,32 +86,7 @@ Null.InterceptVar.Issues <- Null.COV$issues[1]
 ## Means-As-Outcomes: i.e., L1-Only with Fixed Slopes
 
 ```{r}
-MAO <-  clmm(as.factor(eval) ~ scale(inMinOut) + (1|subID) + (1|issues), data = df, threshold = "flexible")
-tidy(MAO,conf.int=TRUE,exponentiate=TRUE,effects="fixed")
-
-performance::icc(MAO)
-
-MAO.VCOV <- VarCorr(MAO)
-MAO.InterceptVar.SubID <- MAO.VCOV$subID[1]
-MAO.InterceptVar.Issues <- MAO.VCOV$issues[1]
-```
-
-### # Intercept Variance Reduced for People
-
-```{r}
-varReduced(Null.InterceptVar.SubID, MAO.InterceptVar.SubID)
-```
-
-### # Intercept Variance Reduced for Issues
-
-```{r}
-varReduced(Null.InterceptVar.Issues, MAO.InterceptVar.Issues)
-```
-
-## One-Way ANCOVA: i.e., L1-Only with Random Slopes
-
-```{r}
-ANCOVA <-  clmm(as.factor(eval) ~ scale(inMinOut) + (scale(inMinOut)|subID) + (1|issues), data = df, threshold = "flexible")
+ANCOVA <-  clmm(as.factor(eval) ~ scale(inMinOut) + (1|subID) + (1|issues), data = df, threshold = "flexible")
 tidy(ANCOVA,conf.int=TRUE,exponentiate=TRUE,effects="fixed")
 
 performance::icc(ANCOVA)
@@ -108,30 +94,52 @@ performance::icc(ANCOVA)
 ANCOVA.VCOV <- VarCorr(ANCOVA)
 ANCOVA.InterceptVar.SubID <- ANCOVA.VCOV$subID[1]
 ANCOVA.InterceptVar.Issues <- ANCOVA.VCOV$issues[1]
-
-
-ANCOVA.SlopeVar.SubID <- ANCOVA.VCOV$subID[4]
-ANCOVA.SlopeVar.Issues <- ANCOVA.VCOV$issues[4]
 ```
 
 ### # Intercept Variance Reduced for People
 
 ```{r}
-varReduced(MAO.InterceptVar.SubID, ANCOVA.InterceptVar.SubID)
+varReduced(Null.InterceptVar.SubID, ANCOVA.InterceptVar.SubID)
 ```
 
 ### # Intercept Variance Reduced for Issues
 
 ```{r}
-varReduced(MAO.InterceptVar.Issues, ANCOVA.InterceptVar.Issues)
+varReduced(Null.InterceptVar.Issues, ANCOVA.InterceptVar.Issues)
+```
+
+## Random Coefficient: i.e., L1-Only with Random Slopes
+
+```{r}
+Ran <-  clmm(as.factor(eval) ~ scale(inMinOut) + (scale(inMinOut)|subID) + (1|issues), data = df, threshold = "flexible")
+tidy(Ran,conf.int=TRUE,exponentiate=TRUE,effects="fixed")
+
+performance::icc(Ran)
+
+Ran.VCOV <- VarCorr(Ran)
+Ran.InterceptVar.SubID <- Ran.VCOV$subID[1]
+Ran.InterceptVar.Issues <- Ran.VCOV$issues[1]
+
+
+Ran.SlopeVar.SubID <- Ran.VCOV$subID[4]
+Ran.SlopeVar.Issues <- Ran.VCOV$issues[4]
+```
+
+### # Intercept Variance Reduced for People
+
+```{r}
+varReduced(ANCOVA.InterceptVar.SubID, Ran.InterceptVar.SubID)
+```
+
+### # Intercept Variance Reduced for Issues
+
+```{r}
+varReduced(ANCOVA.InterceptVar.Issues, Ran.InterceptVar.Issues)
 ```
 
 ## Means-and-slopes-as-outcomes: i.e., L1 with Random Slopes and L2 cross-level
 
 ```{r}
-df$eval <- as.factor(df$eval)
-df$affPolZ <- scale(df$affPol)
-df$inMinOutZ <- scale(df$inMinOut)
 MASAO <-  clmm(eval ~ affPolZ * inMinOutZ + ( inMinOutZ |subID) + (1|issues), data = df, threshold = "flexible")
 tidy(MASAO,conf.int=TRUE,exponentiate=TRUE,effects="fixed")
 
@@ -148,23 +156,23 @@ MASAO.SlopeVar.Issues <- MASAO.VCOV$issues[4]
 ### # Intercept Variance Reduced for People
 
 ```{r}
-varReduced(ANCOVA.InterceptVar.SubID, MASAO.InterceptVar.SubID)
+varReduced(Ran.InterceptVar.SubID, MASAO.InterceptVar.SubID)
 ```
 
 ### # Intercept Variance Reduced for Issues
 
 ```{r}
-varReduced(ANCOVA.InterceptVar.Issues, MASAO.InterceptVar.SubID)
+varReduced(Ran.InterceptVar.Issues, MASAO.InterceptVar.Issues)
 ```
 
 ### # Slope Variance Reduced for People
 
 ```{r}
-varReduced(ANCOVA.SlopeVar.SubID, MASAO.SlopeVar.SubID)
+varReduced(Ran.SlopeVar.SubID, MASAO.SlopeVar.SubID)
 ```
 
 ```{r}
-tab_model(null, MAO, ANCOVA, MASAO, show.stat=T, show.r2 = T, show.se = T, show.ci = F, show.p = F, pred.labels = c("1|2","2|3","3|4","4|5","5|6","6|7","Approval","Polarized", "Polarized*Approval"), string.pred = c("Fixed Effects"), string.est = "OR", string.se = "SE", string.stat = "z", digits = 2, emph.p = F, dv.labels = c("Null","MAO","ANCOVA","MASAO"), file="./EDUC215Dtable.doc")
+tab_model(null, ANCOVA, Ran, MASAO, show.stat=T, show.r2 = T, show.se = T, show.ci = F, show.p = F, pred.labels = c("1|2","2|3","3|4","4|5","5|6","6|7","Approval","Polarized", "Polarized*Approval"), string.pred = c("Fixed Effects"), string.est = "OR", string.se = "SE", string.stat = "z", digits = 2, emph.p = F, dv.labels = c("Null","MAO","ANCOVA","MASAO"), file="./EDUC215Dtable.doc")
 ```
 
 ```{r}
@@ -183,6 +191,58 @@ plot$labels$y <- "Support"
 plot
 ```
 
+
+## Means-and-slopes-as-outcomes: i.e., L1 with Random Slopes and L2 cross-level
+
+With more predictors
+
+```{r}
+MASAO2 <-  clmm(eval ~ affPolZ * inMinOutZ + WSCz * inMinOutZ + MLAMz * inMinOutZ + Polit * inMinOutZ +  ( inMinOutZ |subID) + (1|issues), data = df, threshold = "flexible")
+tidy(MASAO2,conf.int=TRUE,exponentiate=TRUE,effects="fixed")
+
+performance::icc(MASAO2)
+
+MASAO2.VCOV <- VarCorr(MASAO2)
+MASAO2.InterceptVar.SubID <- MASAO2.VCOV$subID[1]
+MASAO2.InterceptVar.Issues <- MASAO2.VCOV$issues[1]
+
+MASAO2.SlopeVar.SubID <- MASAO2.VCOV$subID[4]
+MASAO2.SlopeVar.Issues <- MASAO2.VCOV$issues[4]
+```
+
+### # Intercept Variance Reduced for People
+
+```{r}
+varReduced(MASAO.InterceptVar.SubID, MASAO2.InterceptVar.SubID)
+```
+
+### # Intercept Variance Reduced for Issues
+
+```{r}
+varReduced(MASAO2.InterceptVar.SubID, MASAO2.InterceptVar.SubID)
+```
+
+### # Slope Variance Reduced for People
+
+```{r}
+varReduced(MASAO.SlopeVar.SubID, MASAO2.SlopeVar.SubID)
+```
+
+```{r}
+df2<-df[complete.cases(df$Polit),]
+df2<-df2[complete.cases(df2$WSC),]
+df2<-df2[complete.cases(df2$MLAM),]
+
+null2 <-  clmm(as.factor(eval) ~ 1 + (1|subID) + (1|issues), data = df2, threshold = "flexible")
+
+anova(null, MASAO2)
+```
+
+```{r}
+tab_model(MASAO2, show.stat=T, show.r2 = T, show.se = T, show.ci = F, show.p = F, string.pred = c("Fixed Effects"), string.est = "OR", string.se = "SE", string.stat = "z", digits = 2, emph.p = F, dv.labels = c("MASAO"), file="./EDUC215DtableEXPANDED.doc")
+
+#pred.labels = c("1|2","2|3","3|4","4|5","5|6","6|7","Approval","Polarized", "Polarized*Approval"),
+```
 
 
 
