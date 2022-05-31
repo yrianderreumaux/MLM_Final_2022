@@ -48,6 +48,15 @@ df <- read.csv("../input/PFfullDF.csv")
 df <- subset(df, Info == "Info")
 ```
 
+# demographics
+```{r}
+#number of participants
+length(unique(df$subID))
+#affiliation
+prop.table(table(as.factor(df$Polit)))
+```
+
+
 ```{r}
 df$Polit <- ordered(df$Polit)
 df$WSCz <- scale(df$WSC)
