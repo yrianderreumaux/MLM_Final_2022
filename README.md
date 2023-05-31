@@ -1,2 +1,3 @@
-# MLM_Final_2022
-Repository for final project (Edu 215D)
+# Scripts for Final Project for MultiLevel Modeling Class 2022 (Edu 215D)
+
+
